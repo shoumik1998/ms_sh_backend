@@ -140,10 +140,29 @@ class svcontroller extends Controller
             ->where(DB::raw('BINARY `password`'),'=',$password)
             ->pluck('name')->first();
         return response()->json(['response'=>'success', 'name'=>$result]);
+    }
 
-
+    function  onProduct_Orders(Request  $request){
+        $client_phn_gmail = $request->input("phn_gmail");
+        $result=DB::table("client_ordered_table")
+            ->join("products","products.id","=",
+                "client_ordered_table.product_id")
+            ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
+            ->get();
+        return $result;
 
     }
+
+    function  onShop_Details(Request  $request){
+        $user_name = $request->input("user_name");
+
+        $result = DB::table("login_info")
+            ->where("user_name","=",$user_name)
+            ->get();
+
+        return json_encode($result);
+    }
+
 
 
 }

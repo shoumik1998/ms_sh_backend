@@ -10,8 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use League\CommonMark\Inline\Element\Image;
-
-
+use Pusher\Pusher;
 
 
 class mscontroller extends Controller
@@ -229,6 +228,36 @@ class mscontroller extends Controller
             ->get();
 
         return json_encode($result);
+    }
+
+    function onOrder_Receive(Request $request){
+        $product_id = $request->input("product_id");
+        $status_code = $request->input("status_code");
+        $delivering_date = $request->input("delivering_date");
+
+        $pusher=new Pusher(
+            config('broadcasting.connections.pusher.key'),
+            config('broadcasting.connections.pusher.secret'),
+            config('broadcasting.connections.pusher.app_id'),
+            config('broadcasting.connections.pusher.options')
+        );
+
+        $p=$pusher->trigger(['buyer-channel'],'buyer-event',["product_id"=>$product_id,"status_code"=>$status_code,"delivering_date"=>$delivering_date]);
+        if ($p==true) {
+            $result=DB::table("client_ordered_table")
+                ->where(["product_id"=>$product_id])
+                ->update(["order_status"=>$status_code,"delivering_date"=>$delivering_date]);
+
+            if ($result) {
+                return 'received';
+            }else{
+                return  "failed";
+            }
+        }
+
+
+
+
     }
 
 

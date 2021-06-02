@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\MyEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Pusher\Pusher;
@@ -32,7 +31,7 @@ class MyController extends Controller
         if ($p==true) {
             $result=DB::table('client_ordered_table')
                 ->insertOrIgnore(['phn/gmail'=>$phn_email,'product_id'=>$product_id,'product_name'=>$product_name,"product_price"=>$product_price,
-                    "number_of_product"=>$product_number,"date/time"=>new DateTime(),
+                    "number_of_product"=>$product_number,"issue_date"=>new DateTime(),
                     "client_name"=>$name,"contact_no"=>$contact,'address'=>$address]);
             if ($result) {
                 return  "OK";

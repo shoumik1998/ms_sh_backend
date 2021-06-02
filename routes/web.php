@@ -30,6 +30,8 @@ Route::post('/fetch_pro_after_location_search', 'svcontroller@temp_location');
 Route::post('/fetching_pro_by_name_specific_region', 'svcontroller@fetching_product_by_name_specific_region');
 Route::post('/data_fetching', 'svcontroller@data_fetching');
 Route::post('/shop_name_fetching', 'svcontroller@shop_name_fetching');
+Route::post("/ordered_products", "svcontroller@onProduct_Orders");
+Route::post("/shop_details", "svcontroller@onShop_Details");
 
 //Routes for My Shop
 Route::post('/register','mscontroller@onRegister');
@@ -43,6 +45,8 @@ Route::post('/account_delete','mscontroller@onDelete_Account_Forever');
 Route::post('update_products','mscontroller@onUpdate_Products');
 Route::post('/d','mscontroller@d');
 Route::post('/order','mscontroller@onOrders');
+Route::post('/order_receive','mscontroller@onOrder_Receive');
+
 //out of context
 Route::post('pusher', 'MyController@sendRealTime');
 Route::post('/user_signup','svcontroller@user_signUp');
