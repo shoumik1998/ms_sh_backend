@@ -17,7 +17,7 @@ class svcontroller extends Controller
             ->where('region', 'like', $region)
             ->groupBy(['country', 'district', 'subdistrict', 'region'])
             ->get(["country","district","subdistrict","region"]);
-        return $result;
+        return json_encode($result);
     }
 
 
@@ -62,7 +62,7 @@ class svcontroller extends Controller
             ->inRandomOrder()->limit(5)
             ->get();
 
-        return $result;
+        return json_encode($result);
 
     }
 
@@ -97,7 +97,7 @@ class svcontroller extends Controller
             ->select('name', 'user_name', 'Location')
             ->get();
 
-        return $result;
+        return json_encode($result);
     }
 
     function user_signUp(Request $request)
@@ -131,7 +131,6 @@ class svcontroller extends Controller
     }
 
     function  user_login(Request $request){
-
         $phn_gmail = $request->input('phn_gmail');
         $password=$request->input('password');
 
@@ -149,7 +148,7 @@ class svcontroller extends Controller
                 "client_ordered_table.product_id")
             ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
             ->get();
-        return $result;
+        return json_encode($result);
 
     }
 
@@ -161,6 +160,23 @@ class svcontroller extends Controller
             ->get();
 
         return json_encode($result);
+    }
+
+    function  onDelete_garbage_Items(Request  $request){
+        $phn_gmail = $request->input("phn_gmail");
+        $product_id = $request->input("product_id");
+        $issue_date = $request->input("issue_date");
+
+        $result=DB::table("client_ordered_table")
+            ->where("phn/gmail","=",$phn_gmail)
+            ->where("product_id","=",$product_id)
+            ->where("issue_date","=",$issue_date)
+            ->delete();
+        if ($result) {
+            return response()->json(["response"=>"deleted"]);
+        } else {
+            return  \response()->json(["response"=>"delete_failed"]);
+        }
     }
 
 

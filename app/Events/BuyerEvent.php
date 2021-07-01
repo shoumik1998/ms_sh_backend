@@ -14,17 +14,22 @@ use Illuminate\Queue\SerializesModels;
 class BuyerEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
-    public  $message;
-
-    /**
-     * Create a new event instance.
-     *
-     * @return void
-     */
-    public function __construct($message)
-    {
-        $this->message=$message;
-    }
+//    public  $product_id;
+//    public  $order_status;
+//    public $delivering_date;
+//
+//    /**
+//     * Create a new event instance.
+//     *
+//     * @return void
+//     */
+//    public function __construct($product_id,$order_status,$delivering_date)
+//    {
+//        $this->product_id=$product_id;
+//        $this->order_status=$order_status;
+//        $this->delivering_date=$delivering_date;
+//
+//    }
 
     /**
      * Get the channels the event should broadcast on.

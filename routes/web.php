@@ -32,8 +32,11 @@ Route::post('/data_fetching', 'svcontroller@data_fetching');
 Route::post('/shop_name_fetching', 'svcontroller@shop_name_fetching');
 Route::post("/ordered_products", "svcontroller@onProduct_Orders");
 Route::post("/shop_details", "svcontroller@onShop_Details");
+Route::post("/set_delivering_status", "mscontroller@onOrder_Receive");
+Route::post("/delete_garbage_items", "svcontroller@onDelete_garbage_Items");
 
 //Routes for My Shop
+Route::post("/ordered_products_real", "mscontroller@onProduct_order_realtime");
 Route::post('/register','mscontroller@onRegister');
 Route::post('/login','mscontroller@onLogIn');
 Route::post('/upload','mscontroller@onUploadImage');

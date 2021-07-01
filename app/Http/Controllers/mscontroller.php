@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use League\CommonMark\Inline\Element\Image;
+use PhpParser\Node\Scalar\String_;
 use Pusher\Pusher;
 
 
@@ -90,12 +91,13 @@ class mscontroller extends Controller
         $title=$request->input('title');
         $price = $request->input('price');
         $user_name=$request->input('user_name');
+        $orderable_status = $request->input("orderable_status");
         $image = str_replace('data:image/png;base64,', '', $string_image);
         $fileData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $string_image));
         $image_path='C:/xampp/htdocs/loginapp/uploads/'.$user_name.'.'.$title.'.jpg';
         $image_path_absolute='http://192.168.43.17:80/loginapp/uploads/'.$user_name.'.'.$title.'.jpg';
         \File::put($image_path, $fileData);
-        $result=DB::table('products')->insertOrIgnore(['description'=>$title,'price'=>$price,'imagepath'=>$image_path_absolute,'user_name'=>$user_name]);
+        $result=DB::table('products')->insertOrIgnore(['description'=>$title,'price'=>$price,'orderable_status'=>$orderable_status,'imagepath'=>$image_path_absolute,'user_name'=>$user_name]);
         if($result==true){
             return  response()->json(["response"=>"uploaded"]);
         }else{
@@ -230,10 +232,36 @@ class mscontroller extends Controller
         return json_encode($result);
     }
 
-    function onOrder_Receive(Request $request){
+    function  onProduct_order_realtime(Request  $request)
+    {
+
         $product_id = $request->input("product_id");
+        $phn_email = $request->input("phn_email");
+        $issue_date = $request->input("issue_date");
+        $status_code = $request->input("order_status_code");
+
+        if ($status_code!=null) {
+
+        }
+
+        $result = DB::table("client_ordered_table")
+            ->join("products", "products.id", "=",
+                "client_ordered_table.product_id")
+            ->where("client_ordered_table.phn/gmail", "=", $phn_email)
+            ->where("issue_date", "=", $issue_date)
+            ->where("client_ordered_table.product_id", "=", $product_id)
+            ->get();
+        return json_encode($result);
+    }
+
+        function onOrder_Receive(Request $request){
+        $product_id = $request->input("product_id");
+        $client_phn_gmail = $request->input("phn_gmail");
         $status_code = $request->input("status_code");
         $delivering_date = $request->input("delivering_date");
+        $issue_date = $request->input("issue_date");
+        $user_name = $request->input("user_name");
+
 
         $pusher=new Pusher(
             config('broadcasting.connections.pusher.key'),
@@ -242,17 +270,50 @@ class mscontroller extends Controller
             config('broadcasting.connections.pusher.options')
         );
 
-        $p=$pusher->trigger(['buyer-channel'],'buyer-event',["product_id"=>$product_id,"status_code"=>$status_code,"delivering_date"=>$delivering_date]);
-        if ($p==true) {
-            $result=DB::table("client_ordered_table")
-                ->where(["product_id"=>$product_id])
-                ->update(["order_status"=>$status_code,"delivering_date"=>$delivering_date]);
-
-            if ($result) {
-                return 'received';
+            if ($status_code==4) {
+                $push_deliver=$pusher->trigger([$user_name], 'delivering-event', $delivering_date);
+                $push_issue=$pusher->trigger([$user_name], 'issue-event', $issue_date);
+                $push_id=$pusher->trigger([$user_name],'id-event',$product_id);
+                $push_phn_gmail=$pusher->trigger([$user_name],'phn-gmail-event',$client_phn_gmail);
+                $push_status=$pusher->trigger([$user_name], 'status-event', $status_code);
             }else{
-                return  "failed";
+                $push_deliver=$pusher->trigger([$client_phn_gmail], 'delivering-event', $delivering_date);
+                $push_issue=$pusher->trigger([$client_phn_gmail], 'issue-event', $issue_date);
+                $push_id=$pusher->trigger([$client_phn_gmail],'id-event',$product_id);
+                $push_phn_gmail=$pusher->trigger([$client_phn_gmail],'phn-gmail-event',$client_phn_gmail);
+                $push_status=$pusher->trigger([$client_phn_gmail], 'status-event', $status_code);
             }
+
+
+        if ($push_id==true && $push_deliver==true && $push_phn_gmail==true && $push_status==true && $push_issue==true) {
+            if ($status_code==1) {
+                $receive_result=DB::table("client_ordered_table")
+                    ->where("phn/gmail","=",$client_phn_gmail)
+                    ->where("product_id","=",$product_id)
+                    ->where("issue_date","=",$issue_date)
+                    ->update(["order_status"=>$status_code,"delivering_date"=>$delivering_date]);
+                if ($receive_result==true) {
+                    return response()->json(["response"=>"received"]);
+                }
+            } else {
+                $rest_resutl=DB::table("client_ordered_table")
+                    ->where("phn/gmail","=",$client_phn_gmail)
+                    ->where("product_id","=",$product_id)
+                    ->where("issue_date","=",$issue_date)
+                    ->update(["order_status"=>$status_code]);
+                if ($rest_resutl==true && $status_code==2) {
+                    return  response()->json(["response"=>"deliver"]);
+                } elseif ($rest_resutl==true && $status_code==3) {
+                    return  response()->json(["response"=>"rejected"]);
+                } elseif ($rest_resutl==true && $status_code==4) {
+                    return  response()->json(["response"=>"delivered"]);
+
+                }else{
+                    return  response()->json(["response"=>"failed"]);
+                }
+            }
+
+
         }
 
 
