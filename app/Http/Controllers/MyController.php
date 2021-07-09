@@ -45,7 +45,7 @@ class MyController extends Controller
                 return  response()->json(["response"=>"failed"]);
             }
         }
-        return  response()->json(["response"=>"ok"]);
+
     }
 
 }

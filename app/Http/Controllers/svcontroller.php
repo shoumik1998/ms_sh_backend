@@ -34,7 +34,7 @@ class svcontroller extends Controller
             ->where('login_info.district', '=', $district)
             ->where('login_info.subdistrict', '=', $subdistrict)
             ->where('login_info.region', '=', $region)
-            ->inRandomOrder()->limit(5)
+            ->inRandomOrder()->limit(8)
             ->get();
 
         return json_encode($result);
@@ -59,26 +59,26 @@ class svcontroller extends Controller
             ->where('login_info.subdistrict', '=', $subdistrict)
             ->where('login_info.region', '=', $region)
             ->where('products.description', 'like', $pro_name)
-            ->inRandomOrder()->limit(5)
+            ->inRandomOrder()->limit(8)
             ->get();
 
         return json_encode($result);
 
     }
 
-    function data_fetching(Request $request)
-    {
-        $user_name = $request->input('user_name');
-
-        $result = DB::table('products')
-            ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
-            ->where('login_info.user_name', '=', $user_name)
-            ->select('products.id', 'products.description', 'products.price', 'products.imagepath', 'login_info.currency', 'login_info.Location', 'login_info.name')
-            ->get();
-
-        return json_encode($result);
-
-    }
+//    function data_fetching(Request $request)
+//    {
+//        $user_name = $request->input('user_name');
+//
+//        $result = DB::table('products')
+//            ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
+//            ->where('login_info.user_name', '=', $user_name)
+//            ->select(['products.id', 'products.description', 'products.price', 'products.imagepath', 'login_info.currency', 'login_info.Location', 'login_info.name'])
+//            ->get();
+//
+//        return $result;
+//
+//    }
 
     function shop_name_fetching(Request $request)
     {
@@ -125,7 +125,7 @@ class svcontroller extends Controller
                 return response()->json(['response'=>'exist']);
             }
         } else {
-            return response()->json(['response'=>'invalid phn or gmail']);
+            return response()->json(['response'=>'invalid_phn_or_gmail']);
         }
 
     }
@@ -138,18 +138,39 @@ class svcontroller extends Controller
             ->where(DB::raw('BINARY `phn/gmail`'), '=', $phn_gmail)
             ->where(DB::raw('BINARY `password`'),'=',$password)
             ->pluck('name')->first();
-        return response()->json(['response'=>'success', 'name'=>$result]);
+        if ($result) {
+            return response()->json(['response'=>'success', 'name'=>$result]);
+        } else {
+            return  response()->json(["response"=>"failed"]);
+        }
+
     }
 
     function  onProduct_Orders(Request  $request){
         $client_phn_gmail = $request->input("phn_gmail");
-        $result=DB::table("client_ordered_table")
+        $status_code = $request->input("status_code");
+
+        if ($status_code==1) {
+            $result=DB::table("client_ordered_table")
             ->join("products","products.id","=",
                 "client_ordered_table.product_id")
-            ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
-            ->get();
-        return json_encode($result);
+                ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)->get();
+                //->whereIn('order_status',[1,0,2])->get();
+                return $result;
 
+
+        } elseif ($status_code==4) {
+            $result=DB::table("client_ordered_table")
+                ->join("products","products.id","=",
+                    "client_ordered_table.product_id")
+                ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
+                ->where('order_status','=',3)
+                ->orWhere('order_status','=',4)
+                ->get();
+            return $result;
+        } else {
+            return  'o';
+        }
     }
 
     function  onShop_Details(Request  $request){
@@ -158,24 +179,24 @@ class svcontroller extends Controller
         $result = DB::table("login_info")
             ->where("user_name","=",$user_name)
             ->get();
-
         return json_encode($result);
     }
 
     function  onDelete_garbage_Items(Request  $request){
         $phn_gmail = $request->input("phn_gmail");
-        $product_id = $request->input("product_id");
-        $issue_date = $request->input("issue_date");
+        $product_ids = $request->input("product_id");
+        $issue_dates = $request->input("issue_date");
 
         $result=DB::table("client_ordered_table")
             ->where("phn/gmail","=",$phn_gmail)
-            ->where("product_id","=",$product_id)
-            ->where("issue_date","=",$issue_date)
+            ->whereIn('product_id',$product_ids)
+            ->whereIn('issue_date',$issue_dates)
             ->delete();
-        if ($result) {
+
+        if ($result==true) {
             return response()->json(["response"=>"deleted"]);
         } else {
-            return  \response()->json(["response"=>"delete_failed"]);
+            return  response()->json(["response"=>"delete_failed"]);
         }
     }
 

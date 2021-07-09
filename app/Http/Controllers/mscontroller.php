@@ -80,9 +80,13 @@ class mscontroller extends Controller
 
         $result = DB::table('login_info')
             ->where(DB::raw('BINARY `user_name`'), '=', $user_name)
-            ->where(DB::raw('BINARY `user_password`'), '=', $user_password)
-            ->pluck('name')->first();
-        return response()->json(['response'=>'OK','name'=>$result]);
+            ->where(DB::raw('BINARY `user_password`'), '=', $user_password);
+
+            $name=$result->pluck('name')->first();
+            $currency=$result->pluck('currency')->first();
+
+
+        return response()->json(['response'=>'OK','name'=>$name,'currency'=>$currency]);
     }
 
     function onUploadImage(Request $request)
@@ -132,13 +136,28 @@ class mscontroller extends Controller
     {
 
         $user_name = $request->input('user_name');
-        $result=DB::table('products')
-            ->select('products.id','products.description','products.price','products.imagepath','products.user_name','login_info.currency')
-            ->join('login_info','products.user_name','=','login_info.user_name')
-            ->where('login_info.user_name','=',$user_name)
-            ->get();
+        $deletion_status = $request->input("deletion_status");
+        if ($deletion_status==1) {
+            $result=DB::table('products')
+                ->select('products.id','products.description','products.price','products.imagepath','products.user_name','login_info.currency','products.description','products.orderable_status','login_info.Location','login_info.name')
+                ->join('login_info','products.user_name','=','login_info.user_name')
+                ->where('login_info.user_name','=',$user_name)
+                ->where('deletion_status','=',1)
+                ->get();
 
-        return json_encode($result);
+            return json_encode($result);
+        }else{
+            $result=DB::table('products')
+                //->select('products.id','products.description','products.price','products.imagepath','products.user_name','login_info.currency','products.description','products.orderable_status','login_info.Location','login_info.name')
+                ->join('login_info','products.user_name','=','login_info.user_name')
+                //->join("client_ordered_table","client_ordered_table.product_id","=","products.id")
+                ->where('login_info.user_name','=',$user_name)
+                ->where("products.deletion_status","=",0)
+                ->where('')
+                ->get();
+            return json_encode($result);
+        }
+
     }
 
     function onDelete_Products(Request  $request){
@@ -159,6 +178,40 @@ class mscontroller extends Controller
 
         File::delete($data);
         return response()->json(["response"=>"ok",]);
+    }
+
+    function  onDelete_products_temp(Request  $request){
+        $ids = $request->input('ids');
+        $result=DB::table("products")
+            ->join("client_ordered_table","products.id","=",
+                "client_ordered_table.product_id")
+            ->whereIn('products.id',$ids);
+
+//            $delet_result=$result->whereNotIn("client_ordered_table.order_status",[1,2,4])
+//            ->delete();
+            $not_delete_result=$result->whereIn('client_ordered_table.order_status',[1,2,4])->get('products.id');
+        if (true) {
+            return  \response()->json(["response"=>'deleted',$not_delete_result]);
+        }
+        return $result;
+    }
+
+    function  onNot_Want_Products_Orders(Request $request){
+        $ids = $request->input("ids");
+        $user_name = $request->input("user_name");
+        if ($user_name==null && $ids!=null) {
+            $result=DB::table("products")
+                ->whereIn('id',$ids)
+                ->update(["deletion_status"=>1]);
+            return \response()->json(["response"=>"ok"]);
+        }elseif ($user_name!=null && $ids==null){
+
+
+        }
+
+
+
+
     }
 
     function  onDetails_Fetching(Request  $request){
@@ -200,6 +253,7 @@ class mscontroller extends Controller
             ->where("user_name",'=',$user_name)->delete();
         return response()->json(["response"=>"deleted"]);
     }
+
 
     function  onUpdate_Products(Request  $request){
         $id = $request->input("id");
