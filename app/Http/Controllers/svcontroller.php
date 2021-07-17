@@ -34,6 +34,7 @@ class svcontroller extends Controller
             ->where('login_info.district', '=', $district)
             ->where('login_info.subdistrict', '=', $subdistrict)
             ->where('login_info.region', '=', $region)
+            ->where('deletion_status','=',0)
             ->inRandomOrder()->limit(8)
             ->get();
 
@@ -59,6 +60,7 @@ class svcontroller extends Controller
             ->where('login_info.subdistrict', '=', $subdistrict)
             ->where('login_info.region', '=', $region)
             ->where('products.description', 'like', $pro_name)
+            ->where('deletion_status','=',0)
             ->inRandomOrder()->limit(8)
             ->get();
 
@@ -154,8 +156,9 @@ class svcontroller extends Controller
             $result=DB::table("client_ordered_table")
             ->join("products","products.id","=",
                 "client_ordered_table.product_id")
-                ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)->get();
-                //->whereIn('order_status',[1,0,2])->get();
+                ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
+                ->where("client_ordered_table.deletion_status",'=',0)
+                ->whereIn('order_status',[1,0,2])->get();
                 return $result;
 
 
@@ -163,9 +166,10 @@ class svcontroller extends Controller
             $result=DB::table("client_ordered_table")
                 ->join("products","products.id","=",
                     "client_ordered_table.product_id")
+                ->where("client_ordered_table.deletion_status",'=',0)
                 ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
-                ->where('order_status','=',3)
-                ->orWhere('order_status','=',4)
+                ->whereIn('order_status',[3,4])
+                //->Where('order_status','=',4)
                 ->get();
             return $result;
         } else {
@@ -191,7 +195,7 @@ class svcontroller extends Controller
             ->where("phn/gmail","=",$phn_gmail)
             ->whereIn('product_id',$product_ids)
             ->whereIn('issue_date',$issue_dates)
-            ->delete();
+            ->update(["deletion_status"=>1]);
 
         if ($result==true) {
             return response()->json(["response"=>"deleted"]);
@@ -199,6 +203,8 @@ class svcontroller extends Controller
             return  response()->json(["response"=>"delete_failed"]);
         }
     }
+
+
 
 
 

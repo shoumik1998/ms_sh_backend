@@ -39,6 +39,7 @@ Route::post("/delete_garbage_items", "svcontroller@onDelete_garbage_Items");
 
 Route::post("/data_fetching",'mscontroller@onData_Fetching');
 Route::post("/delete_products_temp",'mscontroller@onDelete_products_temp');
+Route::post("/test",'mscontroller@onTest');
 
 
 //Routes for My Shop
@@ -54,6 +55,7 @@ Route::post('update_products','mscontroller@onUpdate_Products');
 Route::post('/d','mscontroller@d');
 Route::post('/order','mscontroller@onOrders');
 Route::post('/order_receive','mscontroller@onOrder_Receive');
+Route::post('/date','mscontroller@onDateFetch');
 
 //out of context
 Route::post('pusher', 'MyController@sendRealTime');
