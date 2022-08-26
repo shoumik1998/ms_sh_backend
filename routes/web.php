@@ -24,7 +24,7 @@ Route::get('/update', function () {
     return view('scoreUpdate');
 });
 
-//Routes for Shop Visitor
+//Routes for Shops Here
 Route::post('/lf', 'svcontroller@location_fetching');
 Route::post('/fetch_pro_after_location_search', 'svcontroller@temp_location');
 Route::post('/fetching_pro_by_name_specific_region', 'svcontroller@fetching_product_by_name_specific_region');
@@ -57,8 +57,9 @@ Route::post('/order','mscontroller@onOrders');
 Route::post('/order_receive','mscontroller@onOrder_Receive');
 Route::post('/date','mscontroller@onDateFetch');
 
-//out of context
+//Shops Here
 Route::post('pusher', 'MyController@sendRealTime');
 Route::post('/user_signup','svcontroller@user_signUp');
 Route::post("/user_login","svcontroller@user_login");
+Route::post("/rand","mscontroller@onRandom");
 

@@ -30,12 +30,15 @@ class MyController extends Controller
             config('broadcasting.connections.pusher.options')
         );
 
-        $phn_email_push=$pusher->trigger([$user_name],'phn_email-event',$phn_email);
-        $product_id_push=$pusher->trigger([$user_name],'product_id-event',$product_id);
-        $issue_date_push=$pusher->trigger([$user_name],'issue_date-event',$issue_date);
+         $phn_email_push=$pusher->trigger([$user_name],'phn_email-event',$phn_email);
+         $product_id_push=$pusher->trigger([$user_name],'product_id-event',$product_id);
+         $issue_date_push=$pusher->trigger([$user_name],'issue_date-event',$issue_date);
+        $issue_date_push=$pusher->trigger([$user_name],'product_name-event',$product_name);
+        $issue_date_push=$pusher->trigger([$user_name],'product_number-event',$product_number);
+        $issue_date_push=$pusher->trigger([$user_name],'address-event',$address);
         if ($phn_email_push==true && $product_id_push==true && $issue_date_push==true) {
             $result=DB::table('client_ordered_table')
-                ->insertOrIgnore(['phn/gmail'=>$phn_email,'product_id'=>$product_id,'product_name'=>$product_name,"product_price"=>$product_price,
+                ->insertOrIgnore(['phn_gmail'=>$phn_email,'product_id'=>$product_id,'product_name'=>$product_name,"product_price"=>$product_price,
                     "number_of_product"=>$product_number,"issue_date"=>$issue_date,
                     "client_name"=>$name,"contact_no"=>$contact,'address'=>$address]);
             if ($result) {

@@ -11,13 +11,16 @@ class svcontroller extends Controller
 
     function location_fetching(Request $request)
     {
-        $region = $request->input('region').'%';
+        if ($request->input('region')!=null) {
+            $region = $request->input('region').'%';
 
-        $result = DB::table('login_info')
-            ->where('region', 'like', $region)
-            ->groupBy(['country', 'district', 'subdistrict', 'region'])
-            ->get(["country","district","subdistrict","region"]);
-        return json_encode($result);
+            $result = DB::table('login_info')
+                ->where('region', 'like', $region)
+                ->groupBy(['country', 'district', 'subdistrict', 'region'])
+                ->get(["country","district","subdistrict","region"]);
+            return json_encode($result);
+        }
+
     }
 
 
@@ -61,26 +64,26 @@ class svcontroller extends Controller
             ->where('login_info.region', '=', $region)
             ->where('products.description', 'like', $pro_name)
             ->where('deletion_status','=',0)
-            ->inRandomOrder()->limit(8)
+            ->inRandomOrder()->limit(10)
             ->get();
 
         return json_encode($result);
 
     }
 
-//    function data_fetching(Request $request)
-//    {
-//        $user_name = $request->input('user_name');
-//
-//        $result = DB::table('products')
-//            ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
-//            ->where('login_info.user_name', '=', $user_name)
-//            ->select(['products.id', 'products.description', 'products.price', 'products.imagepath', 'login_info.currency', 'login_info.Location', 'login_info.name'])
-//            ->get();
-//
-//        return $result;
-//
-//    }
+    function data_fetching(Request $request)
+    {
+        $user_name = $request->input('user_name');
+
+        $result = DB::table('products')
+            ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
+            ->where('login_info.user_name', '=', $user_name)
+            ->select(['products.id', 'products.description', 'products.price', 'products.imagepath', 'login_info.currency', 'login_info.Location', 'login_info.name'])
+            ->get();
+
+        return $result;
+
+    }
 
     function shop_name_fetching(Request $request)
     {
@@ -153,9 +156,11 @@ class svcontroller extends Controller
         $status_code = $request->input("status_code");
 
         if ($status_code==1) {
-            $result=DB::table("client_ordered_table")
-            ->join("products","products.id","=",
+            $result=DB::table("products")
+            ->join("client_ordered_table","products.id","=",
                 "client_ordered_table.product_id")
+                ->join("login_info","products.user_name","=",
+                "login_info.user_name")
                 ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
                 ->where("client_ordered_table.deletion_status",'=',0)
                 ->whereIn('order_status',[1,0,2])->get();

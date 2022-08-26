@@ -4,19 +4,13 @@ namespace App\Http\Controllers;
 
 use http\Env\Response;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use League\CommonMark\Inline\Element\Image;
-use PhpParser\Node\Scalar\String_;
+use Illuminate\Support\Facades\File;
 use Pusher\Pusher;
-
 
 class mscontroller extends Controller
 {
-    function onRegister(Request $request)
+    public function onRegister(Request $request)
     {
         $country = $request->input('country');
         $district = $request->input('district');
@@ -46,15 +40,19 @@ class mscontroller extends Controller
 
             }
 
-
         } else {
             if ($selector == 1) {
-                DB::table('login_info')
+                $up_result = DB::table('login_info')
                     ->where('user_name', '=', $user_name)
                     ->update(['name' => $shop_name, 'user_password' => $user_password,
                         'country' => $country, 'district' => $district, 'subdistrict' => $subdistrict,
                         'region' => $region, 'Location' => $location, 'currency' => $currency, 'cell_number' => $cell_number]);
-                return response()->json(['response' => 'OK']);
+                if ($up_result == true) {
+                    return response()->json(['response' => 'updated']);
+                } else {
+                    return response()->json(['response' => 'failed']);
+                }
+
             } else {
                 $result = DB::table('login_info')
                     ->insertOrIgnore(['name' => $shop_name, 'user_name' => $user_name, 'user_password' => $user_password,
@@ -62,7 +60,7 @@ class mscontroller extends Controller
                         'region' => $region, 'Location' => $location, 'currency' => $currency, 'cell_number' => $cell_number]);
 
                 if ($result == true) {
-                    return response()->json(['response' => 'OK']);
+                    return response()->json(['response' => 'inserted']);
                 } else {
                     return response()->json(['response' => 'exists']);
                 }
@@ -71,25 +69,27 @@ class mscontroller extends Controller
         }
     }
 
-    function onLogIn(Request $request)
+    public function onLogIn(Request $request)
     {
 
         $user_name = $request->input('user_name');
         $user_password = $request->input('user_password');
 
-
         $result = DB::table('login_info')
             ->where(DB::raw('BINARY `user_name`'), '=', $user_name)
             ->where(DB::raw('BINARY `user_password`'), '=', $user_password);
-
         $name = $result->pluck('name')->first();
         $currency = $result->pluck('currency')->first();
 
+        if ($name && $currency) {
+            return response()->json(['response' => 'OK', 'name' => $name, 'currency' => $currency]);
+        } else {
+            return \response()->json(["response" => "failed"]);
+        }
 
-        return response()->json(['response' => 'OK', 'name' => $name, 'currency' => $currency]);
     }
 
-    function onUploadImage(Request $request)
+    public function onUploadImage(Request $request)
     {
         $string_image = $request->input('images');
         $title = $request->input('title');
@@ -100,77 +100,83 @@ class mscontroller extends Controller
         $fileData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $string_image));
         $image_path = 'C:/xampp/htdocs/loginapp/uploads/' . $user_name . '.' . $title . '.jpg';
         $image_path_absolute = 'http://192.168.43.17:80/loginapp/uploads/' . $user_name . '.' . $title . '.jpg';
-        \File::put($image_path, $fileData);
-        $result = DB::table('products')->insertOrIgnore(['description' => $title, 'price' => $price, 'orderable_status' => $orderable_status, 'imagepath' => $image_path_absolute, 'user_name' => $user_name]);
-        if ($result == true) {
-            return response()->json(["response" => "uploaded"]);
+
+        $duplicate_checker = DB::table('products')
+            ->where('description', '=', $title)
+            ->where('user_name', '=', $user_name)
+            ->pluck('description')->first();
+        if ($duplicate_checker == null) {
+            $result = DB::table('products')->insertOrIgnore(['description' => $title, 'price' => $price, 'orderable_status' => $orderable_status, 'imagepath' => $image_path_absolute, 'user_name' => $user_name]);
+            if ($result == true) {
+                \File::put($image_path, $fileData);
+                return response()->json(["response" => "uploaded"]);
+            } else {
+                return response()->json(["response" => "failed"]);
+            }
+
         } else {
-            return response()->json(["response" => "failed"]);
+            return response()->json(["response" => "exists"]);
+
         }
 
-
         //Storage::disk('local')->put( $imageName, base64_decode($string_image));
-//
-//        $tmpFilePath = sys_get_temp_dir() . '/' . $title.'.png';
-//        file_put_contents($tmpFilePath, $fileData);
-//
-//        $tmpFile=new File($tmpFilePath);
-//
-//        $file=new UploadedFile(
-//            $tmpFile->getPathname(),
-//        $tmpFile->getFilename(),
-//        $tmpFile->getMimeType(),0,true);
-//
-//        $file->storeAs('images',$title.".png");
+        //
+        //        $tmpFilePath = sys_get_temp_dir() . '/' . $title.'.png';
+        //        file_put_contents($tmpFilePath, $fileData);
+        //
+        //        $tmpFile=new File($tmpFilePath);
+        //
+        //        $file=new UploadedFile(
+        //            $tmpFile->getPathname(),
+        //        $tmpFile->getFilename(),
+        //        $tmpFile->getMimeType(),0,true);
+        //
+        //        $file->storeAs('images',$title.".png");
 
         return \response()->json(['response' => 'uploaded']);
     }
 
-    function onFetchImage()
+    public function onFetchImage()
     {
         $f = \File::get('E:/uploads/home_screen.png');
         $file = base64_encode($f);
         return $file;
     }
 
-    function onData_Fetching(Request $request)
+    public function onData_Fetching(Request $request)
     {
 
         $user_name = $request->input('user_name');
         $deletion_status = $request->input("deletion_status");
-        $ids_in_COT=array();
-        $result1=array();
+        $ids_in_COT = array();
+        $result1 = array();
 
+        if ($deletion_status == 1) {
 
-        if ($deletion_status==1) {
+            $checker = DB::table("products")
+                ->where('products.user_name', '=', $user_name)
+                ->where('products.deletion_status', '=', 1)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('client_ordered_table')
+                        ->whereRaw('products.id = client_ordered_table.product_id');
+                })->delete();
 
-            $checker=DB::table("products")
-            ->where('products.user_name','=',$user_name)
-            ->where('products.deletion_status','=',1)
-            ->whereNotExists(function ( $query){
-                $query->select(DB::raw(1))
-                    ->from('client_ordered_table')
-                    ->whereRaw('products.id = client_ordered_table.product_id');
-            })->delete();
-
-
-                $result = DB::table('products')
-                    ->select('products.id','products.description','products.price','products.imagepath','products.user_name','login_info.currency','products.description','client_ordered_table.order_status','login_info.Location','login_info.name')
-                    ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
-                    ->join("client_ordered_table","client_ordered_table.product_id","=","products.id")
-                    ->where('login_info.user_name', '=', $user_name)
-                    ->where("products.deletion_status", "=", 1)
-                    ->get();
-                //return json_encode($result);
-            return  $result;
-
-
+            $result = DB::table('products')
+                ->select('products.id', 'products.description', 'products.price', 'products.imagepath', 'products.user_name', 'login_info.currency', 'products.description', 'client_ordered_table.order_status', 'login_info.Location', 'login_info.name')
+                ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
+                ->join("client_ordered_table", "client_ordered_table.product_id", "=", "products.id")
+                ->where('login_info.user_name', '=', $user_name)
+                ->where("products.deletion_status", "=", 1)
+                ->get();
+            //return json_encode($result);
+            return $result;
 
         } else {
             $result = DB::table('products')
-                //->select('products.id','products.description','products.price','products.imagepath','products.user_name','login_info.currency','products.description','products.orderable_status','login_info.Location','login_info.name')
+            //->select('products.id','products.description','products.price','products.imagepath','products.user_name','login_info.currency','products.description','products.orderable_status','login_info.Location','login_info.name')
                 ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
-                //->join("client_ordered_table","client_ordered_table.product_id","=","products.id")
+            //->join("client_ordered_table","client_ordered_table.product_id","=","products.id")
                 ->where('login_info.user_name', '=', $user_name)
                 ->where("products.deletion_status", "=", 0)
                 ->get();
@@ -179,7 +185,7 @@ class mscontroller extends Controller
 
     }
 
-    function onDelete_Products(Request $request)
+    public function onDelete_Products(Request $request)
     {
         $ids = $request->input('ids');
         $idss[] = $ids;
@@ -195,47 +201,51 @@ class mscontroller extends Controller
         }
 
         $result = DB::table('products')->whereIn('id', $ids)->delete();
+        if ($result == true) {
+            File::delete($data);
+            return response()->json(["response" => "ok"]);
+        } else {
+            return response()->json(["response" => "failed"]);
 
-        File::delete($data);
-        return response()->json(["response" => "ok",]);
+        }
+
     }
 
-
 //    function onDelete_products_temp(Request $request)
-//    {
-//        $ids = $request->input('ids');
-//        $result = DB::table("products")
-//            ->join("client_ordered_table", "products.id", "=",
-//                "client_ordered_table.product_id")
-//            ->whereIn('products.id', $ids);
-//
-////            $delet_result=$result->whereNotIn("client_ordered_table.order_status",[1,2,4])
-////            ->delete();
-//        $not_delete_result = $result->whereIn('client_ordered_table.order_status', [1, 2, 4])->get('products.id');
-//        if (true) {
-//            return \response()->json(["response" => 'deleted', $not_delete_result]);
-//        }
-//        return $result;
-//    }
+    //    {
+    //        $ids = $request->input('ids');
+    //        $result = DB::table("products")
+    //            ->join("client_ordered_table", "products.id", "=",
+    //                "client_ordered_table.product_id")
+    //            ->whereIn('products.id', $ids);
+    //
+    ////            $delet_result=$result->whereNotIn("client_ordered_table.order_status",[1,2,4])
+    ////            ->delete();
+    //        $not_delete_result = $result->whereIn('client_ordered_table.order_status', [1, 2, 4])->get('products.id');
+    //        if (true) {
+    //            return \response()->json(["response" => 'deleted', $not_delete_result]);
+    //        }
+    //        return $result;
+    //    }
 
 //    function onNot_Want_Products_Orders(Request $request)
-//    {
-//        $ids = $request->input("ids");
-//        $user_name = $request->input("user_name");
-//        if ($user_name == null && $ids != null) {
-//            $result = DB::table("products")
-//                ->whereIn('id', $ids)
-//                ->update(["deletion_status" => 1]);
-//            return \response()->json(["response" => "ok"]);
-//        } elseif ($user_name != null && $ids == null) {
-//
-//
-//        }
-//
-//
-//    }
+    //    {
+    //        $ids = $request->input("ids");
+    //        $user_name = $request->input("user_name");
+    //        if ($user_name == null && $ids != null) {
+    //            $result = DB::table("products")
+    //                ->whereIn('id', $ids)
+    //                ->update(["deletion_status" => 1]);
+    //            return \response()->json(["response" => "ok"]);
+    //        } elseif ($user_name != null && $ids == null) {
+    //
+    //
+    //        }
+    //
+    //
+    //    }
 
-    function onDetails_Fetching(Request $request)
+    public function onDetails_Fetching(Request $request)
     {
         $user_name = $request->input('user_name');
         $password = $request->input('user_password');
@@ -252,13 +262,17 @@ class mscontroller extends Controller
         $cell_number = $result->pluck('cell_number')->first();
         $currency = $result->pluck('currency')->first();
         $name = $result->pluck('name')->first();
-        return response()->json(["name" => $name, "user_name" => $user_name, "user_password" => $password,
-            "country" => $country, "district" => $district, "subdistrict" => $subdistrict, "region" => $region,
-            "Location" => $location, "currency" => $currency, "cell_number" => $cell_number, "response" => "OK"]);
+        if ($result->count() > 0) {
+            return response()->json(["name" => $name, "user_name" => $user_name, "user_password" => $password,
+                "country" => $country, "district" => $district, "subdistrict" => $subdistrict, "region" => $region,
+                "Location" => $location, "currency" => $currency, "cell_number" => $cell_number, "response" => "OK"]);
+        } else {
+            return \response()->json(["response" => "failed"]);
+        }
 
     }
 
-    function onDelete_Account_Forever(Request $request)
+    public function onDelete_Account_Forever(Request $request)
     {
         $user_name = $request->input('user_name');
 
@@ -277,14 +291,12 @@ class mscontroller extends Controller
         return response()->json(["response" => "deleted"]);
     }
 
-
-    function onUpdate_Products(Request $request)
+    public function onUpdate_Products(Request $request)
     {
         $id = $request->input("id");
         $user_name = $request->input("user_name");
         $product_name = $request->input("product_name");
         $product_price = $request->input("product_price");
-
 
         $result = DB::table('products')->where('id', '!=', $id)->where('user_name', '=', $user_name)
             ->where('description', '=', $product_name)->pluck('description');
@@ -298,34 +310,31 @@ class mscontroller extends Controller
 
     }
 
-    function onOrders(Request $request)
+    public function onOrders(Request $request)
     {
         $user_name = $request->input("user_name");
         $status_code = $request->input("status_code");
 
-
-        if ($status_code==1) {
+        if ($status_code == 1) {
             $result = DB::table('client_ordered_table')
                 ->join('products', 'products.id', '=', 'client_ordered_table.product_id')
                 ->where('products.user_name', '=', $user_name)
-                ->whereIn("client_ordered_table.order_status",[0,1,2])
+                ->whereIn("client_ordered_table.order_status", [0, 1, 2])
                 ->get();
-            return  json_encode($result);
-        } elseif ($status_code==4) {
+            return json_encode($result);
+        } elseif ($status_code == 4) {
             $result = DB::table('client_ordered_table')
                 ->join('products', 'products.id', '=', 'client_ordered_table.product_id')
                 ->where('products.user_name', '=', $user_name)
-                ->whereIn("client_ordered_table.order_status",[3,4])
+                ->whereIn("client_ordered_table.order_status", [3, 4])
                 ->get();
             return json_encode($result);
         }
 
-
-
-       // return json_encode($result);
+        // return json_encode($result);
     }
 
-    function onProduct_order_realtime(Request $request)
+    public function onProduct_order_realtime(Request $request)
     {
 
         $product_id = $request->input("product_id");
@@ -340,14 +349,14 @@ class mscontroller extends Controller
         $result = DB::table("client_ordered_table")
             ->join("products", "products.id", "=",
                 "client_ordered_table.product_id")
-            ->where("client_ordered_table.phn/gmail", "=", $phn_email)
+            ->where("client_ordered_table.phn_gmail", "=", $phn_email)
             ->where("issue_date", "=", $issue_date)
             ->where("client_ordered_table.product_id", "=", $product_id)
             ->get();
         return json_encode($result);
     }
 
-    function onOrder_Receive(Request $request)
+    public function onOrder_Receive(Request $request)
     {
         $product_id = $request->input("product_id");
         $client_phn_gmail = $request->input("phn_gmail");
@@ -356,7 +365,6 @@ class mscontroller extends Controller
         $issue_date = $request->input("issue_date");
         $user_name = $request->input("user_name");
         $date = $request->input("date");
-
 
         $pusher = new Pusher(
             config('broadcasting.connections.pusher.key'),
@@ -379,24 +387,24 @@ class mscontroller extends Controller
             $push_status = $pusher->trigger([$client_phn_gmail], 'status-event', $status_code);
         }
 
-
         if ($push_id == true && $push_deliver == true && $push_phn_gmail == true && $push_status == true && $push_issue == true) {
             if ($status_code == 1) {
                 $receive_result = DB::table("client_ordered_table")
-                    ->where("phn/gmail", "=", $client_phn_gmail)
+                    ->where("phn_gmail", "=", $client_phn_gmail)
                     ->where("product_id", "=", $product_id)
                     ->where("issue_date", "=", $issue_date)
-                    ->update(["order_status" => $status_code, "delivering_date" => $delivering_date,"date"=>$date]);
+                    ->update(["order_status" => $status_code, "delivering_date" => $delivering_date, "date" => $date]);
                 if ($receive_result == true) {
                     return response()->json(["response" => "received"]);
+                } else {
+                    return response()->json(["response" => "failed"]);
                 }
-            }
-            else {
+            } else {
                 $rest_resutl = DB::table("client_ordered_table")
-                    ->where("phn/gmail", "=", $client_phn_gmail)
+                    ->where("phn_gmail", "=", $client_phn_gmail)
                     ->where("product_id", "=", $product_id)
                     ->where("issue_date", "=", $issue_date)
-                    ->update(["order_status" => $status_code,"date"=>$date]);
+                    ->update(["order_status" => $status_code, "date" => $date]);
                 if ($rest_resutl == true && $status_code == 2) {
                     return response()->json(["response" => "deliver"]);
                 } elseif ($rest_resutl == true && $status_code == 3) {
@@ -408,37 +416,44 @@ class mscontroller extends Controller
                     return response()->json(["response" => "failed"]);
                 }
             }
+        } else {
+            return response()->json(["response" => "push_failed"]);
         }
+        return response()->json(["response" => "no action"]);
     }
 
-    function onDateFetch(Request $request){
-        $user_name=$request->input("user_name");
-        $result=DB::table("client_ordered_table")
-            ->join("products","client_ordered_table.product_id","=","products.id")
-            ->where("products.user_name","=",$user_name)
+    public function onDateFetch(Request $request)
+    {
+        $user_name = $request->input("user_name");
+        $result = DB::table("client_ordered_table")
+            ->join("products", "client_ordered_table.product_id", "=", "products.id")
+            ->where("products.user_name", "=", $user_name)
             ->groupBy('date')
             ->pluck("date");
         if ($result) {
             return $result;
         } else {
-            return  \response()->json(["response"=>"failed"]);
+            return \response()->json(["response" => "failed"]);
         }
-
-
 
     }
 
-    function  onTest(Request  $request){
-        $result=DB::table('client_ordered_table')
-            ->where('phn/gmail','=','shoumik@gmail.com')
-            ->update(["date"=>$request->input('date')]);
+    public function onTest(Request $request)
+    {
+        $result = DB::table('client_ordered_table')
+            ->where('phn/gmail', '=', 'shoumik@gmail.com')
+            ->update(["date" => $request->input('date')]);
 
         if ($result) {
             return 'hmmm';
         }
 
-
     }
 
+    public function onRandom()
+    {
+        return DB::table('products')
+            ->get('imagepath');
+    }
 
 }
