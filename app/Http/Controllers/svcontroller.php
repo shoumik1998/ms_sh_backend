@@ -161,7 +161,7 @@ class svcontroller extends Controller
                 "client_ordered_table.product_id")
                 ->join("login_info","products.user_name","=",
                 "login_info.user_name")
-                ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
+                ->where("client_ordered_table.phn_gmail","=",$client_phn_gmail)
                 ->where("client_ordered_table.deletion_status",'=',0)
                 ->whereIn('order_status',[1,0,2])->get();
                 return $result;
@@ -172,7 +172,7 @@ class svcontroller extends Controller
                 ->join("products","products.id","=",
                     "client_ordered_table.product_id")
                 ->where("client_ordered_table.deletion_status",'=',0)
-                ->where("client_ordered_table.phn/gmail","=",$client_phn_gmail)
+                ->where("client_ordered_table.phn_gmail","=",$client_phn_gmail)
                 ->whereIn('order_status',[3,4])
                 //->Where('order_status','=',4)
                 ->get();
