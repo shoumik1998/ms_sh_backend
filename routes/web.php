@@ -56,6 +56,8 @@ Route::post('/d','mscontroller@d');
 Route::post('/order','mscontroller@onOrders');
 Route::post('/order_receive','mscontroller@onOrder_Receive');
 Route::post('/date','mscontroller@onDateFetch');
+Route::post('/markstockoutproducts','mscontroller@onMarkStockOutProducts');
+Route::post('/stockoutproducts','mscontroller@onStockOutProducts');
 
 //Shops Here
 Route::post('pusher', 'MyController@sendRealTime');

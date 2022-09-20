@@ -153,19 +153,19 @@ class mscontroller extends Controller
 
         if ($deletion_status == 1) {
 
-            $checker = DB::table("products")
-                ->where('products.user_name', '=', $user_name)
-                ->where('products.deletion_status', '=', 1)
-                ->whereNotExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('client_ordered_table')
-                        ->whereRaw('products.id = client_ordered_table.product_id');
-                })->delete();
+            // $checker = DB::table("products")
+            //     ->where('products.user_name', '=', $user_name)
+            //     ->where('products.deletion_status', '=', 1)
+            //     ->whereNotExists(function ($query) {
+            //         $query->select(DB::raw(1))
+            //             ->from('client_ordered_table')
+            //             ->whereRaw('products.id = client_ordered_table.product_id');
+            //     })->delete();
 
             $result = DB::table('products')
-                ->select('products.id', 'products.description', 'products.price', 'products.imagepath', 'products.user_name', 'login_info.currency', 'products.description', 'client_ordered_table.order_status', 'login_info.Location', 'login_info.name')
+                //->select('products.id', 'products.description', 'products.price', 'products.imagepath', 'products.user_name', 'login_info.currency', 'products.description', 'client_ordered_table.order_status', 'login_info.Location', 'login_info.name')
                 ->join('login_info', 'products.user_name', '=', 'login_info.user_name')
-                ->join("client_ordered_table", "client_ordered_table.product_id", "=", "products.id")
+               // ->join("client_ordered_table", "client_ordered_table.product_id", "=", "products.id")
                 ->where('login_info.user_name', '=', $user_name)
                 ->where("products.deletion_status", "=", 1)
                 ->get();
@@ -211,6 +211,7 @@ class mscontroller extends Controller
 
     }
 
+
 //    function onDelete_products_temp(Request $request)
     //    {
     //        $ids = $request->input('ids');
@@ -228,21 +229,31 @@ class mscontroller extends Controller
     //        return $result;
     //    }
 
-//    function onNot_Want_Products_Orders(Request $request)
-    //    {
-    //        $ids = $request->input("ids");
-    //        $user_name = $request->input("user_name");
-    //        if ($user_name == null && $ids != null) {
-    //            $result = DB::table("products")
-    //                ->whereIn('id', $ids)
-    //                ->update(["deletion_status" => 1]);
-    //            return \response()->json(["response" => "ok"]);
-    //        } elseif ($user_name != null && $ids == null) {
-    //
-    //
-    //        }
-    //
-    //
+   function onMarkStockOutProducts(Request $request)
+       {
+           $ids = $request->input("ids");
+          // $user_name = $request->input("user_name");
+               $result = DB::table("products")
+                   ->whereIn('id', $ids)
+                   ->update(["deletion_status" => 1]);
+                   if($result==true){
+                    return \response()->json(["response" => "ok"]);
+                   }else{
+                    return \response()->json(["response" => "failed"]);
+                   }
+       }
+
+    //    public function onStockOutProducts(Request $request){
+    //     $user_name=$request->input("user_name");
+    //     $result=DB::table("products")
+    //     ->where('deletion_status',1)
+    //     ->get();
+    //     if($result==true){
+    //         return $result;
+    //     }else{
+
+    //     }
+
     //    }
 
     public function onDetails_Fetching(Request $request)
